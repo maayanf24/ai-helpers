@@ -196,7 +196,7 @@ The core data structure for each analyzed issue:
     "last_status_summary_update": "2025-01-05T10:30:00Z"
   },
   "comments": [
-    {"author": "user@example.com", "date": "2025-01-08", "body": "Started work on PR #123", "is_bot": false}
+    {"author": "user@example.com", "date": "2025-01-08", "body": "Started work on PR #123", "is_bot": false, "visibility": null}
   ],
   "descendants": [
     {"key": "OCPSTRAT-1235", "summary": "Sub-task 1", "status": "Done", "updated_in_range": true}
@@ -219,6 +219,11 @@ The core data structure for each analyzed issue:
       "in_progress": 1,
       "blocked": 0,
       "completion_percentage": 33
+    },
+    "visibility_tracking": {
+      "has_restricted_content": false,
+      "most_restrictive": null,
+      "restricted_comment_count": 0
     }
   }
 }

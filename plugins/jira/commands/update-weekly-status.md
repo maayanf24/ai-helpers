@@ -290,9 +290,56 @@ Options:
 
 ##### e. Update the Issue
 
+**Security check for restricted content:**
+
+If `analysis.visibility_tracking.has_restricted_content` is true:
+- Display warning:
+  ```
+  ⚠️ RESTRICTED CONTENT DETECTED - {ISSUE-KEY}
+  
+  This analysis includes information from restricted comments:
+  - Restriction: {type}={value}
+  - Affected comments: {count}
+  
+  LIMITATION: Status Summary field CANNOT have visibility restrictions.
+  Any content posted to this field will be visible to anyone with issue access.
+  
+  SECURITY POLICY: Cannot post restricted content to public field.
+  
+  Choose how to proceed:
+  1. 'exclude' (recommended): Update field WITHOUT restricted content
+  2. 'skip': Skip this issue (no update)
+  
+  Note: Full analysis (including restricted content) saved to:
+  .work/weekly-status/{date}/issues/{ISSUE-KEY}.json
+  ```
+
+**Handle user choice:**
+
+- **If 'exclude':**
+  - Regenerate summary excluding all comments where `visibility != null`
+  - Display the filtered summary for review
+  - Ask: "Update Status Summary with this filtered content? (yes/skip)"
+  - If yes: proceed with field update
+  - If skip: move to next issue
+
+- **If 'skip':**
+  - Display: `⊘ Skipped {ISSUE-KEY} (contains restricted content)`
+  - Move to next issue
+  - Full analysis remains available in JSON file
+
+**NO "ACCEPT RISK" OPTION:**
+- The system will NEVER post restricted content to the Status Summary field
+- User must either exclude restricted content or skip the issue entirely
+
+**Perform update:**
+
 Use `editJiraIssue` with `contentFormat: "markdown"` to set `customfield_10814` (Status Summary) to the formatted status text.
 
-Display confirmation: `✓ Updated {ISSUE-KEY}`
+Display confirmation:
+- If restricted content was excluded: `✓ Updated {ISSUE-KEY} (excluded restricted content)`
+- If no restricted content: `✓ Updated {ISSUE-KEY}`
+- Always append: `  Full analysis: .work/weekly-status/{date}/issues/{ISSUE-KEY}.json`
 
 #### Step 8. Summary Report
 

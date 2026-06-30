@@ -23,9 +23,21 @@ Three output formats are supported:
 
 Used by `/jira:status-rollup` to post a comprehensive status comment to a Jira issue.
 
+### Visibility Warning (Optional)
+
+If `analysis.visibility_tracking.has_restricted_content` is true, prepend this warning:
+
+```markdown
+> ⚠️ **Note**: This summary includes information from restricted comments (visible to: {visibility.type}={visibility.value})
+```
+
 ### Template
 
 ```markdown
+{if has_restricted_content}
+> ⚠️ **Note**: This summary includes information from restricted comments (visible to: {visibility.type}={visibility.value})
+
+{end if}
 ## Status Rollup: {start-date} to {end-date}
 
 **Overall Status:** {health-indicator} {health-statement}

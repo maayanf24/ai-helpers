@@ -270,6 +270,10 @@ For each root issue key in `config.root_issues`, fetch the issue via `getJiraIss
 - `fields.description`: Issue description (for PR URL extraction)
 - `fields.issuelinks`: Linked issues and remote links
 - `fields.comment.comments`: Recent comments
+- `fields.comment.comments[].visibility`: Comment visibility restrictions (if present)
+  - `type`: "group" or "role"
+  - `value`: group name or role name
+  - Null/absent if comment is public
 - `fields.{status-summary-field-id}`: Current Status Summary value (if applicable)
 - `changelog.histories`: Field change history
 
@@ -374,7 +378,8 @@ For each issue (root and descendants), combine all collected data into an `Issue
       "author_display_name": "John Doe",
       "date": "2025-01-08T14:00:00Z",
       "body": "Started work on PR #123",
-      "is_bot": false
+      "is_bot": false,
+      "visibility": null
     }
   ],
   "descendants": [
@@ -400,6 +405,9 @@ For each issue (root and descendants), combine all collected data into an `Issue
 1. **Filter comments**:
    - Exclude bot/automation comments (check author for known bot patterns)
    - Known bot patterns: "Automation for Jira", "GitHub Actions", account IDs starting with "5..."
+   - **Extract visibility restrictions**: Store `visibility` field from each comment
+     - `visibility.type`: "group" or "role" (or null/absent if public)
+     - `visibility.value`: group name or role name
    - Keep only human comments for analysis
 
 2. **Extract status transitions**:
@@ -415,7 +423,14 @@ For each issue (root and descendants), combine all collected data into an `Issue
    - Compare each descendant's `updated` timestamp to date range
    - Set `updated_in_range: true` if within [start_date, end_date]
 
-5. **Preserve issuelinks**:
+5. **Track visibility restrictions**:
+   - For each comment, check if `visibility` field is present
+   - If ANY comment has visibility restrictions:
+     - Set `analysis.visibility_tracking.has_restricted_content = true`
+     - Store the first restricted visibility found in `analysis.visibility_tracking.most_restrictive`
+     - Increment `analysis.visibility_tracking.restricted_comment_count`
+
+6. **Preserve issuelinks**:
    - Store for external-links module to process
 
 ### Step 6: Cache to Temp File (Optional)

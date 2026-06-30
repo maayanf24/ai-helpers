@@ -236,7 +236,54 @@ All entries form one continuous markdown unordered list (no blank lines between 
 
 #### Step 8. Present for Review
 
-Display the complete assembled section:
+**Security check for restricted content:**
+
+Before displaying, check if ANY analyzed issue has `analysis.visibility_tracking.has_restricted_content = true`.
+
+If restricted content detected:
+- Count total issues with restricted content
+- Collect unique visibility restrictions (e.g., "group=security-team", "role=developers")
+- Generate two versions:
+  1. **Full version** (with restricted content) → save to `/tmp/feature-updates-full.md`
+  2. **Filtered version** (without restricted content) → save to `/tmp/feature-updates-filtered.md`
+- Display choice prompt:
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  RESTRICTED CONTENT DETECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This analysis includes information from RESTRICTED Jira comments.
+
+Affected issues: {count} out of {total}
+Restrictions: {list of unique visibility types}
+
+SECURITY POLICY: Cannot output restricted content to stdout/HTML
+without user confirmation, as it may be pasted into public documents.
+
+Two versions generated:
+
+1. FILTERED (recommended for public/wide-audience):
+   - Excludes all restricted content
+   - File: /tmp/feature-updates-filtered.md
+   - {filtered_count} features included
+
+2. FULL (use ONLY in restricted-access documents):
+   - Includes restricted content
+   - File: /tmp/feature-updates-full.md
+   - {full_count} features included
+
+Choose output version:
+  'filtered' - Display filtered version (safe for public)
+  'full'     - Display full version (restricted docs only)
+  'both'     - Display both with clear labels
+  'files'    - Don't display, just keep files
+  'cancel'   - Abort without output
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Handle user choice:**
+
+Display the selected version(s):
 
 ```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -246,6 +293,9 @@ Issues analyzed: {total}
 Features with significant activity: {included}
 Features skipped (no activity): {skipped}
 Date range: {start} to {end}
+{if restricted_content}
+⚠️  Contains restricted content - see warning above
+{end if}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {assembled feature updates section}

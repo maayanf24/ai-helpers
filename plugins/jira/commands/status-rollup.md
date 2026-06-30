@@ -127,9 +127,71 @@ Regenerate only affected sections and present again.
 
 Once approved:
 
-1. Use `addCommentToJiraIssue` with `contentFormat: "markdown"` to post to the root issue
-2. Comment includes footer: ``_Generated with [Claude Code](https://claude.com/claude-code) via `/jira:status-rollup {issue-id} --start-date {date} --end-date {date}`_``
-3. Confirm success and provide issue URL
+1. **Check for restricted content**:
+   - If `analysis.visibility_tracking.has_restricted_content` is false:
+     - Proceed normally with public comment (skip to step 4)
+   
+   - If `analysis.visibility_tracking.has_restricted_content` is true:
+     - Display warning:
+       ```
+       ⚠️ RESTRICTED CONTENT DETECTED
+       
+       This analysis includes information from restricted comments:
+       - Restriction: {type}={value}
+       - Affected comments: {count}
+       
+       SECURITY POLICY: Restricted content cannot be posted publicly.
+       
+       Choose how to proceed:
+       1. 'exclude' (recommended): Post comment WITHOUT restricted content
+       2. 'include': Post comment WITH restricted content using matching visibility
+       3. 'cancel': Abort without posting
+       
+       Note: Full analysis (including restricted content) is saved to:
+       {cache-file-path}
+       ```
+
+2. **Handle user choice**:
+
+   **If 'exclude':**
+   - Regenerate summary excluding all comments where `visibility != null`
+   - Display the filtered summary for review
+   - Ask: "Post this filtered summary? (yes/no)"
+   - If yes: post as public comment (skip to step 4)
+   - If no: abort
+
+   **If 'include':**
+   - Post comment with matching `commentVisibility` restrictions
+   - Use `addCommentToJiraIssue` with:
+     - `contentFormat: "markdown"`
+     - `commentVisibility`: {type, value} from `most_restrictive`
+   - Prepend note to comment body:
+     ```markdown
+     > 🔒 **Note**: This summary includes information from restricted comments
+     
+     [rest of comment body]
+     ```
+   - Proceed to step 4
+
+   **If 'cancel':**
+   - Display: "Comment not posted. Full analysis available in {cache-file-path}"
+   - Skip to step 7
+
+3. **NO DOWNGRADE PATH**:
+   - The system will NEVER post restricted content to a public comment
+   - The system will NEVER post restricted content with weaker visibility than the source
+   - If user wants different visibility, they must choose 'exclude' (removes restricted content)
+
+4. **Post comment**:
+   - Use `addCommentToJiraIssue` with `contentFormat: "markdown"`
+   - Include `commentVisibility` only if posting restricted content (from step 2 'include' path)
+
+5. Comment includes footer: ``_Generated with [Claude Code](https://claude.com/claude-code) via `/jira:status-rollup {issue-id} --start-date {date} --end-date {date}`_``
+
+6. Confirm success:
+   - If restricted content was excluded: `✓ Posted public comment to {ISSUE-KEY} (excluded restricted content)`
+   - If restricted content was included: `✓ Posted restricted comment to {ISSUE-KEY} (visible to: {type}={value})`
+   - Always show: `Full analysis (including all content): {cache-file-path}`
 
 ### 7. Temp File Cleanup
 
@@ -219,6 +281,10 @@ _Generated with [Claude Code](https://claude.com/claude-code) via `/jira:status-
 - `issue-id` (required): The JIRA issue ID to analyze (e.g., FEATURE-123, EPIC-456, STORY-789, CNTRLPLANE-1234)
 - `--start-date` (optional): Start date in YYYY-MM-DD format. Defaults to issue creation date if not provided
 - `--end-date` (optional): End date in YYYY-MM-DD format. Defaults to today if not provided
+- `--include-restricted` (optional): Include restricted comment content in Jira comment (applies matching visibility)
+  - Default: false (excludes restricted content from Jira comment, includes only in local cache file)
+  - When true: Posts comment with `commentVisibility` matching the most restrictive source comment
+  - Cannot be used to downgrade visibility - restricted content is never posted publicly
 
 ## Error Handling
 
